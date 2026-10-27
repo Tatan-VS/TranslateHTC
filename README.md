@@ -1,0 +1,2 @@
+# TranslateHTC
+Ofline Simultaneous Translation 
