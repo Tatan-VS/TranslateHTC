@@ -22,6 +22,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -74,7 +75,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Captura el toque táctil de los audífonos HTC para activar/pausar micrófono
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE || keyCode == KeyEvent.KEYCODE_HEADSETHOOK) {
             toggleListeningCallback?.invoke()
@@ -108,10 +108,8 @@ class MainActivity : ComponentActivity() {
     private fun hablarConEnrutamiento(texto: String, langBcp: String, modoAudio: Int, esIdiomaA: Boolean) {
         tts?.language = Locale.forLanguageTag(langBcp)
         val params = Bundle()
-
-        // Enrutamiento de canales L/R según el modo elegido
         when (modoAudio) {
-            1 -> { // Modo Split L/R: Idioma A al oído Izquierdo (-1.0), Idioma B al Derecho (+1.0)
+            1 -> {
                 val pan = if (esIdiomaA) -1.0f else 1.0f
                 params.putFloat(TextToSpeech.Engine.KEY_PARAM_PAN, pan)
             }
@@ -139,20 +137,16 @@ fun TraductorHibridoApp(
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("config_htc", Context.MODE_PRIVATE) }
-
-    // Pager: Página 0 = Espejo 180°, Página 1 = Centro de Mando (Inicio), Página 2 = Modo Bolsillo
     val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
 
-    // Estados de configuración
-    var usarGemini by remember { mutableStateOf(false) } // false = Google Offline, true = Gemini IA
-    var modoAudio by remember { mutableIntStateOf(0) } // 0 = Charla, 1 = Split L/R, 2 = Reunión
+    var usarGemini by remember { mutableStateOf(false) }
+    var modoAudio by remember { mutableStateOf(0) }
     var escuchando by remember { mutableStateOf(false) }
-    var escuchaIdiomaA by remember { mutableStateOf(true) } // Alterna quién habla
+    var escuchaIdiomaA by remember { mutableStateOf(true) }
     var mostrarAjustesApi by remember { mutableStateOf(false) }
     var mostrarMenuMasIdiomas by remember { mutableStateOf(false) }
     var geminiApiKey by remember { mutableStateOf(prefs.getString("gemini_key", "") ?: "") }
 
-    // Lista de idiomas predeterminados + expansibles
     val idiomasActivos = remember {
         mutableStateListOf(
             IdiomaItem("🇪🇸 Español", "es-ES", TranslateLanguage.SPANISH),
@@ -168,14 +162,13 @@ fun TraductorHibridoApp(
         IdiomaItem("🇵🇱 Polaco", "pl-PL", TranslateLanguage.POLISH)
     )
 
-    var idiomaMio by remember { mutableStateOf(idiomasActivos[0]) } // Español
-    var idiomaOtro by remember { mutableStateOf(idiomasActivos[1]) } // Alemán
+    var idiomaMio by remember { mutableStateOf(idiomasActivos[0]) }
+    var idiomaOtro by remember { mutableStateOf(idiomasActivos[1]) }
 
     var textoOriginal by remember { mutableStateOf("Toca el micrófono o tu audífono HTC para hablar...") }
     var textoTraducido by remember { mutableStateOf("Die Übersetzung erscheint hier...") }
     val historialReunion = remember { mutableStateListOf<String>() }
 
-    // Solicitud automática de permiso de micrófono
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { }
@@ -183,11 +176,9 @@ fun TraductorHibridoApp(
         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
 
-    // Función central que procesa y traduce (Google Offline o Gemini IA)
     fun procesarTraduccion(textoEntrada: String, origen: IdiomaItem, destino: IdiomaItem, habloYo: Boolean) {
         textoOriginal = "${origen.nombre}: $textoEntrada"
         if (!usarGemini) {
-            // MOTOR 1: GOOGLE TRANSLATE OFFLINE (ML KIT)
             val options = TranslatorOptions.Builder()
                 .setSourceLanguage(origen.codigoMlKit)
                 .setTargetLanguage(destino.codigoMlKit)
@@ -208,10 +199,9 @@ fun TraductorHibridoApp(
                         }
                 }
                 .addOnFailureListener {
-                    textoTraducido = "Error al descargar diccionario: ${it.localizedMessage}"
+                    textoTraducido = "Error diccionario: ${it.localizedMessage}"
                 }
         } else {
-            // MOTOR 2: GEMINI IA CONTEXTUAL
             if (geminiApiKey.isBlank()) {
                 textoTraducido = "⚠️ Toca el engranaje ⚙️ arriba y pega tu API Key de Google AI Studio."
                 return
@@ -247,7 +237,6 @@ fun TraductorHibridoApp(
             onStartListening(origen.codigoBcp) { textoCapturado ->
                 escuchando = false
                 procesarTraduccion(textoCapturado, origen, destino, habloYo)
-                // Si está en Modo Reunión, vuelve a escuchar continuamente
                 if (modoAudio == 2) {
                     accionarMicrofono(false)
                 }
@@ -255,7 +244,6 @@ fun TraductorHibridoApp(
         }
     }
 
-    // Conectar el botón físico del audífono HTC
     LaunchedEffect(idiomaMio, idiomaOtro, modoAudio, usarGemini) {
         registerHeadsetToggle { accionarMicrofono(habloYo = false) }
     }
@@ -266,7 +254,6 @@ fun TraductorHibridoApp(
             .background(Color(0xFF0E1117))
             .padding(12.dp)
     ) {
-        // Indicador superior de las 3 vistas deslizables
         Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -287,18 +274,13 @@ fun TraductorHibridoApp(
             }
         }
 
-        // CARRUSEL DE 3 PANTALLAS (Deslizar Izquierda / Centro / Derecha)
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.weight(1f)
         ) { page ->
             when (page) {
-                // =========================================================
-                // PÁGINA 0 (IZQUIERDA): MODO PANTALLA DIVIDIDA 180° (ESPEJO)
-                // =========================================================
                 0 -> {
                     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        // Mitad Superior GIRADA 180 GRADOS para la persona frente a ti
                         Card(
                             modifier = Modifier.fillMaxWidth().weight(1f).rotate(180f)
                                 .clickable { accionarMicrofono(habloYo = false) },
@@ -315,7 +297,6 @@ fun TraductorHibridoApp(
                             }
                         }
 
-                        // Mitad Inferior NORMAL para ti
                         Card(
                             modifier = Modifier.fillMaxWidth().weight(1f)
                                 .clickable { accionarMicrofono(habloYo = true) },
@@ -334,12 +315,8 @@ fun TraductorHibridoApp(
                     }
                 }
 
-                // =========================================================
-                // PÁGINA 1 (CENTRO): CENTRO DE MANDO PRINCIPAL (OPCIÓN 1)
-                // =========================================================
                 1 -> {
                     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        // 1. Selector de Motor: Google Offline vs Gemini IA
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = { usarGemini = false },
@@ -358,7 +335,6 @@ fun TraductorHibridoApp(
                             ) { Text("🧠 Gemini IA Live", color = Color.White, fontSize = 13.sp) }
                         }
 
-                        // 2. Selector de Modo de Audio para los Audífonos HTC
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             val modos = listOf("🗣️ Charla", "🎧 Split L/R", "📻 Reunión")
                             modos.forEachIndexed { index, titulo ->
@@ -374,7 +350,6 @@ fun TraductorHibridoApp(
                             }
                         }
 
-                        // 3. Pizarra de Conversación en Tiempo Real
                         Card(
                             modifier = Modifier.fillMaxWidth().weight(1f),
                             colors = CardDefaults.cardColors(containerColor = Color(0xFF161B22))
@@ -388,7 +363,6 @@ fun TraductorHibridoApp(
                                     Text(textoTraducido, color = Color(0xFF3FB950), fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
                                 }
 
-                                // Botón de Guardar Historial (EXCLUSIVO PARA MODO REUNIÓN)
                                 if (modoAudio == 2) {
                                     Button(
                                         onClick = {
@@ -406,26 +380,26 @@ fun TraductorHibridoApp(
                             }
                         }
 
-                        // 4. Selector de Idiomas Activos + Botón [+] para agregar más
-                        Text("TU IDIOMA (Oído Izq)  ⇄  IDIOMA INTERLOCUTOR (Oído Der):", color = Color.Gray, fontSize = 11.sp)
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            idiomasActivos.forEach { item ->
+                        Text("TU IDIOMA (Izq): ${idiomaMio.nombre}  ⇄  OTRO (Der): ${idiomaOtro.nombre}", color = Color.Gray, fontSize = 11.sp)
+                        LazyRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(idiomasActivos) { item ->
                                 val esSeleccionado = (item == idiomaMio || item == idiomaOtro)
-                                FilterChip(
-                                    selected = esSeleccionado,
-                                    onClick = {
-                                        if (item != idiomaMio) idiomaOtro = item
-                                    },
-                                    label = { Text(item.nombre, fontSize = 11.sp) }
-                                )
+                                OutlinedButton(
+                                    onClick = { if (item != idiomaMio) idiomaOtro = item },
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = if (esSeleccionado) Color(0xFF1F2937) else Color.Transparent
+                                    )
+                                ) {
+                                    Text(item.nombre, color = Color.White, fontSize = 11.sp)
+                                }
                             }
-                            AssistChip(
-                                onClick = { mostrarMenuMasIdiomas = true },
-                                label = { Text("➕", fontSize = 12.sp) }
-                            )
+                            item {
+                                OutlinedButton(onClick = { mostrarMenuMasIdiomas = true }) {
+                                    Text("➕ Idioma", color = Color(0xFF58A6FF), fontSize = 11.sp)
+                                }
+                            }
                         }
 
-                        // 5. Botones Grandes de Acción (Hablar Yo / Escuchar al Otro)
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Button(
                                 onClick = { accionarMicrofono(habloYo = true) },
@@ -452,9 +426,6 @@ fun TraductorHibridoApp(
                     }
                 }
 
-                // =========================================================
-                // PÁGINA 2 (DERECHA): MODO BOLSILLO MINIMALISTA (PURO AUDIO)
-                // =========================================================
                 2 -> {
                     Box(
                         modifier = Modifier
@@ -500,14 +471,13 @@ fun TraductorHibridoApp(
         }
     }
 
-    // Ventana Emergente para Agregar Idiomas Adicionales
     if (mostrarMenuMasIdiomas) {
         AlertDialog(
             onDismissRequest = { mostrarMenuMasIdiomas = false },
-            title = { Text("➕ Agregar Idioma o Cambiar Tu Idioma Base") },
+            title = { Text("➕ Agregar o Cambiar Idiomas") },
             text = {
                 LazyColumn {
-                    item { Text("Toca un idioma extra para añadirlo a tu barra:", fontSize = 12.sp, color = Color.Gray) }
+                    item { Text("Toca un idioma extra para añadirlo:", fontSize = 12.sp, color = Color.Gray) }
                     items(idiomasExtra) { extra ->
                         TextButton(
                             onClick = {
@@ -520,7 +490,7 @@ fun TraductorHibridoApp(
                     }
                     item {
                         Divider(modifier = Modifier.padding(vertical = 8.dp))
-                        Text("Cambiar TU idioma principal (Oído Izquierdo):", fontSize = 12.sp, color = Color.Gray)
+                        Text("Cambiar TU idioma principal (Oído Izq):", fontSize = 12.sp, color = Color.Gray)
                     }
                     items(idiomasActivos) { activo ->
                         TextButton(
@@ -539,7 +509,6 @@ fun TraductorHibridoApp(
         )
     }
 
-    // Ventana Emergente para pegar tu API Key de Google AI Studio
     if (mostrarAjustesApi) {
         AlertDialog(
             onDismissRequest = { mostrarAjustesApi = false },
