@@ -19,18 +19,15 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: 3. Configurar Android SDK
-      uses: android-actions/setup-android@v3
-
-    - name: 4. Instalar motor Gradle 8.4 oficial
+    - name: 3. Instalar motor Gradle 8.4 oficial
       uses: gradle/actions/setup-gradle@v3
       with:
         gradle-version: '8.4'
 
-    - name: 5. Compilar APK
+    - name: 4. Compilar APK
       run: gradle assembleDebug --no-daemon --stacktrace
 
-    - name: 6. Entregar archivo APK listo para descargar
+    - name: 5. Entregar archivo APK listo para descargar
       uses: actions/upload-artifact@v4
       with:
         name: Traductor-HTC-Hibrido-APK
