@@ -24,13 +24,17 @@ jobs:
       with:
         gradle-version: '8.4'
 
-    - name: 4. Aceptar licencias en ruta real y Compilar APK
+    - name: 4. Configurar AndroidX, Licencias y Compilar APK
       env:
         ANDROID_HOME: /usr/local/lib/android/sdk
         ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       run: |
-        yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-        gradle assembleDebug --no-daemon --stacktrace
+        echo "android.useAndroidX=true" > gradle.properties
+        echo "android.enableJetifier=true" >> gradle.properties
+        echo "org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8" >> gradle.properties
+        echo "sdk.dir=/usr/local/lib/android/sdk" > local.properties
+        yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+        gradle assembleDebug --no-daemon
 
     - name: 5. Entregar archivo APK listo para descargar
       uses: actions/upload-artifact@v4
