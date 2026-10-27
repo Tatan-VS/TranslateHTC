@@ -24,8 +24,10 @@ jobs:
       with:
         gradle-version: '8.4'
 
-    - name: 4. Compilar APK
-      run: gradle assembleDebug --no-daemon --stacktrace
+    - name: 4. Compilar APK y aceptar licencias SDK
+      run: |
+        yes | sdkmanager --licenses || true
+        gradle assembleDebug --no-daemon --stacktrace
 
     - name: 5. Entregar archivo APK listo para descargar
       uses: actions/upload-artifact@v4
