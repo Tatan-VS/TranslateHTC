@@ -11,8 +11,8 @@ android {
         applicationId "com.htc.traductorhibrido"
         minSdk 26
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "2.0"
     }
 
     buildFeatures {
@@ -43,8 +43,9 @@ dependencies {
     implementation 'androidx.compose.material3:material3'
     implementation 'androidx.compose.foundation:foundation'
 
-    // Motor 1: Google Translate Nativo Offline (ML Kit)
+    // Motor 1: Google Translate Nativo Offline + Auto-Detector de Idioma (Opción A)
     implementation 'com.google.mlkit:translate:17.0.2'
+    implementation 'com.google.mlkit:language-id:17.0.5'
 
     // Motor 2: Google Gemini AI SDK + Coroutines
     implementation 'com.google.ai.client.generativeai:generativeai:0.7.0'
